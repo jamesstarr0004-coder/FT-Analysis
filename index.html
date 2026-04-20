@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cephalometric analysis</title>
+<style>
+:root {
+  --bg: transparent;
+  --surface: #ffffff;
+  --surface-alt: #fafaf9;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-subtle: #9a9a9a;
+  --border: #e5e5e5;
+  --border-strong: #d0d0d0;
+  --accent: #c2572b;
+  --accent-hover: #a84820;
+  --success: #2d7a4f;
+  --success-bg: #e8f3ec;
+  --warning: #b8860b;
+  --warning-bg: #fdf6e3;
+  --danger: #b33a3a;
+  --danger-bg: #fbeaea;
+  --population-band: #e8e8e6;
+  --ideal-band: #d4e8dd;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1c1c1c;
+    --surface-alt: #242424;
+    --text: #ededed;
+    --text-muted: #a0a0a0;
+    --text-subtle: #6a6a6a;
+    --border: #333333;
+    --border-strong: #444444;
+    --accent: #d96a3e;
+    --accent-hover: #e07d55;
+    --success: #4da873;
+    --success-bg: #1c2e23;
+    --warning: #d4a22a;
+    --warning-bg: #2e2818;
+    --danger: #d86565;
+    --danger-bg: #2e1c1c;
+    --population-band: #2a2a2a;
+    --ideal-band: #1f3329;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+body { padding: 24px 16px; }
+.container { max-width: 1040px; margin: 0 auto; }
+header { margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
+.subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--text-subtle); flex-shrink: 0; margin-top: 8px;
+}
+.status-dot.loading { background: var(--warning); animation: pulse 1.4s ease-in-out infinite; }
+.status-dot.ready { background: var(--success); }
+.status-dot.error { background: var(--danger); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+details {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 8px; margin-bottom: 16px; overflow: hidden;
+}
+summary {
+  padding: 14px 16px; cursor: pointer; font-weight: 500; font-size: 14px;
+  user-select: none; list-style: none; display: flex; justify-content: space-between; align-items: center;
+}
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--text-muted); font-size: 18px; }
+details[open] summary::after { content: "−"; }
+.details-body { padding: 0 16px 16px; font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+.details-body p { margin-bottom: 10px; }
+.details-body strong { color: var(--text); font-weight: 500; }
+
+.card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 18px; margin-bottom: 16px;
+}
+.card-title { font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+
+.demographics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.demographics label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.demographics select, .demographics input {
+  width: 100%; padding: 8px 10px; font-size: 14px;
+  background: var(--surface-alt); color: var(--text);
+  border: 0.5px solid var(--border-strong); border-radius: 6px; font-family: inherit;
+}
+.demographics select:focus, .demographics input:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+.upload-zone {
+  border: 1.5px dashed var(--border-strong); border-radius: 8px;
+  padding: 32px 16px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+}
+.upload-zone:hover { border-color: var(--accent); }
+.upload-zone.drag { border-color: var(--accent); background: var(--surface-alt); }
+.upload-zone p { color: var(--text-muted); font-size: 14px; margin-bottom: 4px; }
+.upload-zone .hint { font-size: 12px; color: var(--text-subtle); }
+input[type="file"] { display: none; }
+
+.compare-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--text-muted); }
+.compare-toggle input { accent-color: var(--accent); }
+
+.compare-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.status-line {
+  font-size: 13px; color: var(--text-muted); padding: 10px 14px;
+  background: var(--surface-alt); border-radius: 6px; margin-top: 12px; display: none;
+}
+.status-line.visible { display: block; }
+
+.warning-box {
+  background: var(--warning-bg); border-left: 2px solid var(--warning);
+  padding: 10px 14px; font-size: 13px; margin-top: 12px; border-radius: 4px;
+}
+.warning-box.danger { background: var(--danger-bg); border-left-color: var(--danger); }
+
+.results { display: none; }
+.results.visible { display: block; }
+
+.summary-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 16px; margin-bottom: 16px;
+}
+.summary-item { text-align: center; }
+.summary-value { font-size: 22px; font-weight: 500; color: var(--text); }
+.summary-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; text-transform: none; }
+
+.metric {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; position: relative;
+}
+.metric.bad { border-left: 2px solid var(--danger); }
+.metric.borderline { border-left: 2px solid var(--warning); }
+.metric-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; gap: 12px; }
+.metric-name { font-size: 14px; font-weight: 500; }
+.metric-value { font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 500; }
+.metric-value.bad { color: var(--danger); }
+.metric-value.borderline { color: var(--warning); }
+.metric-value.good { color: var(--success); }
+.metric-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+.metric-citation { font-size: 11px; color: var(--text-subtle); margin-top: 8px; font-style: italic; }
+
+.bar-wrap { position: relative; height: 24px; margin: 8px 0 6px; }
+.bar-track {
+  position: absolute; left: 0; right: 0; top: 9px; height: 6px;
+  background: var(--surface-alt); border-radius: 3px;
+}
+.bar-population {
+  position: absolute; top: 9px; height: 6px;
+  background: var(--population-band); border-radius: 3px;
+}
+.bar-ideal {
+  position: absolute; top: 9px; height: 6px;
+  background: var(--ideal-band); border-radius: 3px;
+}
+.bar-marker {
+  position: absolute; top: 4px; width: 2px; height: 16px;
+  background: var(--text); border-radius: 1px;
+}
+.bar-marker.bad { background: var(--danger); }
+.bar-marker.borderline { background: var(--warning); }
+.bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+
+.metric-footer { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.tier-badge {
+  display: inline-block; font-size: 10px; padding: 3px 8px;
+  background: var(--surface-alt); border: 0.5px solid var(--border);
+  border-radius: 10px; color: var(--text-muted);
+}
+.confidence-flag {
+  display: inline-block; font-size: 10px; padding: 3px 8px;
+  background: var(--warning-bg); color: var(--warning); border-radius: 10px;
+}
+.metric-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; font-style: italic; }
+
+.section-heading {
+  font-size: 13px; font-weight: 500; color: var(--text-muted);
+  margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--border);
+}
+
+.delta {
+  display: inline-block; margin-left: 8px; font-size: 12px;
+  font-variant-numeric: tabular-nums; padding: 2px 6px; border-radius: 4px;
+}
+.delta.improved { background: var(--success-bg); color: var(--success); }
+.delta.worsened { background: var(--danger-bg); color: var(--danger); }
+.delta.unchanged { background: var(--surface-alt); color: var(--text-muted); }
+
+.actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+button {
+  padding: 10px 16px; font-size: 13px; font-weight: 500; font-family: inherit;
+  background: var(--surface); color: var(--text);
+  border: 0.5px solid var(--border-strong); border-radius: 6px;
+  cursor: pointer; transition: border-color 0.15s;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.dashed { border-style: dashed; border-width: 1px; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.notice {
+  font-size: 12px; color: var(--text-muted); padding: 14px 16px;
+  background: var(--surface-alt); border-radius: 6px; margin-top: 24px;
+  line-height: 1.55;
+}
+.notice strong { color: var(--text); }
+.notice-list { margin-top: 8px; padding-left: 18px; }
+.notice-list li { margin-bottom: 4px; }
+
+.footer-disclaimer {
+  font-size: 11px; color: var(--text-subtle); margin-top: 24px;
+  padding: 16px; border-top: 0.5px solid var(--border); line-height: 1.6;
+}
+
+.limitation-callout {
+  background: var(--surface-alt); border: 0.5px solid var(--border);
+  border-left: 2px solid var(--accent);
+  padding: 12px 14px; font-size: 12px; color: var(--text-muted);
+  margin: 12px 0; border-radius: 4px; line-height: 1.55;
+}
+
+@media (max-width: 600px) {
+  .demographics { grid-template-columns: 1fr; }
+  .summary-row { grid-template-columns: 1fr 1fr; }
+  .compare-zones { grid-template-columns: 1fr; }
+}
+
+.canvas-preview { display: none; }
+
+.confirm-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 100; align-items: center; justify-content: center; padding: 20px;
+}
+.confirm-overlay.visible { display: flex; }
+.confirm-box {
+  background: var(--surface); border-radius: 8px; padding: 20px;
+  max-width: 400px; width: 100%;
+}
+.confirm-box p { font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div>
+    <h1>Cephalometric analysis</h1>
+    <div class="subtitle">Facial landmark-based proportional assessment. All processing runs locally.</div>
+  </div>
+  <div class="status-dot" id="statusDot" title="Status"></div>
+</header>
+
+<details>
+  <summary>Photography setup</summary>
+  <div class="details-body">
+    <p>Poor photos produce misleading measurements. Spend a minute getting this right.</p>
+    <p><strong>Camera position.</strong> Exactly at eye level. Not below — a below-eye angle lengthens the face and exaggerates the lower third, which will throw off vertical-thirds and jaw metrics. Not above, which does the opposite.</p>
+    <p><strong>Framing.</strong> Face centred and occupying at least 60% of the frame height. If the face is too small the landmark detector loses sub-pixel precision on the periocular region.</p>
+    <p><strong>Lighting.</strong> Natural window light directly in front of you. Not overhead (casts eye hollows and ages the face). Not lateral (creates false asymmetry in the shadow pattern).</p>
+    <p><strong>Expression.</strong> Neutral. Teeth together, lips closed, jaw relaxed. Any smile, clench, or asymmetric expression will propagate through the mouth and jaw measurements.</p>
+    <p><strong>Head position.</strong> Perfectly level. Use a horizontal reference in the frame if unsure. The tool applies a rotation correction for small tilts but cannot recover meaningful data above ~9° of yaw.</p>
+    <p><strong>Remove.</strong> Glasses, hair covering the forehead or ears, any filter or beauty mode, any AI enhancement from the phone camera. Many modern phones apply smoothing by default — check settings.</p>
+    <p><strong>First load.</strong> The MediaPipe model file is approximately 4MB and loads once on first use, then caches. On a slow connection expect a brief wait.</p>
+  </div>
+</details>
+
+<div class="card">
+  <div class="card-title">Subject details</div>
+  <div class="demographics">
+    <div>
+      <label for="sex">Sex</label>
+      <select id="sex">
+        <option value="male" selected>Male</option>
+        <option value="female">Female</option>
+      </select>
+    </div>
+    <div>
+      <label for="ethnicity">Ethnicity</label>
+      <select id="ethnicity">
+        <option value="caucasian" selected>Caucasian</option>
+        <option value="asian">Asian</option>
+        <option value="african">African</option>
+      </select>
+    </div>
+    <div>
+      <label for="age">Age</label>
+      <input type="number" id="age" min="14" max="80" value="22" />
+    </div>
+  </div>
+  <div class="compare-toggle">
+    <input type="checkbox" id="compareMode" />
+    <label for="compareMode">Before/after comparison mode</label>
+  </div>
+</div>
+
+<div id="singleUpload" class="card">
+  <div class="card-title">Upload photo</div>
+  <div class="upload-zone" id="uploadZone">
+    <p>Drop photo here or click to choose</p>
+    <div class="hint">Front-facing, neutral expression, level head</div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" />
+  <div class="status-line" id="statusLine"></div>
+  <div id="warnings"></div>
+</div>
+
+<div id="compareUpload" class="card" style="display:none">
+  <div class="card-title">Upload photos</div>
+  <div class="compare-zones">
+    <div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Before</div>
+      <div class="upload-zone" id="uploadZoneA">
+        <p>Drop before photo</p>
+      </div>
+      <input type="file" id="fileInputA" accept="image/*" />
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">After</div>
+      <div class="upload-zone" id="uploadZoneB">
+        <p>Drop after photo</p>
+      </div>
+      <input type="file" id="fileInputB" accept="image/*" />
+    </div>
+  </div>
+  <div class="status-line" id="statusLineCompare"></div>
+  <div id="warningsCompare"></div>
+</div>
+
+<div class="results" id="results">
+  <div class="summary-row" id="summaryRow"></div>
+  <div id="metricsContainer"></div>
+
+  <div class="limitation-callout">
+    <strong>What this tool cannot assess.</strong> Profile measurements (nasolabial angle, E-line, mentocervical angle, gonial angle) are not included — MediaPipe Face Landmarker is trained on frontal faces and produces unreliable output on profiles. Skin quality (texture, pore size, pigmentation, fine lines) is not assessed — that requires a dedicated dermatological computer vision model, not landmark geometry. True bizygomatic width requires a submentovertex radiograph or 3D scan; this tool's value is a soft-tissue approximation. Skeletal asymmetry requires a posteroanterior cephalogram; the symmetry score here is soft-tissue only. Gonial angle cannot be reliably measured from a frontal photo, so the jaw/cheekbone ratio is a soft-tissue jaw width estimate, not a bony angle.
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="copyBtn">Copy export summary</button>
+    <button id="reportBtn">Generate full written report ↗</button>
+    <button class="dashed" id="improveBtn">Analyse and improve this tool ↗</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div class="footer-disclaimer" id="disclaimer"></div>
+</div>
+
+<canvas class="canvas-preview" id="canvas"></canvas>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmText"></p>
+    <div class="confirm-actions">
+      <button id="confirmCancel">Cancel</button>
+      <button class="primary" id="confirmOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// NORMS — populated from peer-reviewed sources. Format:
+//   measurement: { male: { african, asian, caucasian }, female: {...} }
+// Each entry: { mean, ciLow, ciHigh, source }
+// Where data are missing from the source, value is null and UI notes it.
+// ============================================================================
+
+// Wen YF et al 2015, PLoS ONE 10(8):e0134525 — Table 2 (males) and Table 3 (females)
+// All values in mm; angles not used here since profile is out of scope
+const WEN_2015 = {
+  widthFace: {
+    male:   { african: [138.1, 113.0, 162.6], asian: [140.9, 118.7, 160.9], caucasian: [130.7, 105.0, 157.1] },
+    female: { african: [134.2, 123.0, 145.1], asian: [137.9, 130.3, 144.1], caucasian: [123.3, 114.7, 134.6] }
+  },
+  widthMandible: {
+    male:   { african: null, asian: null, caucasian: null }, // not reported for any male group
+    female: { african: null, asian: [113.7, 77.7, 148.8], caucasian: [105.5, 76.8, 136.1] }
+  },
+  widthNose: {
+    male:   { african: [37.9, 31.5, 44.2], asian: [38.5, 31.2, 46.6], caucasian: [37.9, 32.3, 43.5] },
+    female: { african: [34.6, 30.7, 38.1], asian: [35.8, 32.8, 39.2], caucasian: [35.1, 32.5, 37.6] }
+  },
+  widthMouth: {
+    male:   { african: [51.3, 37.8, 64.4], asian: [48.4, 37.6, 59.3], caucasian: [48.2, 35.0, 61.7] },
+    female: { african: [49.6, 43.5, 56.9], asian: [46.9, 42.9, 50.7], caucasian: [48.0, 43.8, 52.3] }
+  },
+  heightForeheadI: { // glabella to nasion (upper third)
+    male:   { african: [58.0, 45.1, 71.8], asian: [57.6, 45.1, 70.9], caucasian: [55.1, 46.8, 63.6] },
+    female: { african: [55.0, 46.8, 63.9], asian: [56.2, 50.4, 62.5], caucasian: [52.8, 48.3, 57.5] }
+  },
+  heightForeheadII: { // trichion to glabella — hairline-dependent, not used for thirds
+    male:   { african: null, asian: null, caucasian: null },
+    female: { african: [68.7, 62.7, 74.3], asian: [72.8, 64.6, 77.8], caucasian: [64.1, 60.7, 69.3] }
+  },
+  physiognomicalHeight: { // glabella to menton — primary vertical reference
+    male:   { african: null, asian: [189.2, 161.9, 215.9], caucasian: [187.3, 154.8, 220.0] },
+    female: { african: null, asian: [183.2, 173.8, 191.1], caucasian: [171.7, 163.6, 181.2] }
+  },
+  heightLowerFace: { // subnasale to menton
+    male:   { african: [72.2, 64.4, 80.0], asian: [67.4, 59.7, 75.1], caucasian: [69.4, 64.6, 73.9] },
+    female: { african: [65.5, 59.9, 72.1], asian: [64.6, 60.2, 69.4], caucasian: [63.0, 60.0, 66.2] }
+  },
+  midfaceHeight: { // nasion to subnasale
+    male:   { african: [62.9, 51.9, 73.7], asian: [60.3, 48.6, 71.1], caucasian: [65.5, 58.5, 72.1] },
+    female: { african: [62.8, 54.8, 70.2], asian: [63.1, 57.6, 68.4], caucasian: [63.7, 59.5, 67.8] }
+  },
+  heightUpperLip: { // subnasale to stomion superior
+    male:   { african: null, asian: [21.9, 13.9, 29.8], caucasian: [21.6, 16.9, 26.3] },
+    female: { african: null, asian: [20.9, 19.1, 22.7], caucasian: [19.7, 18.7, 20.6] }
+  }
+};
+
+// Rhee SC et al 2012, Aesthet Plast Surg 36:1236-45 — Appendix Table 2
+// Columns: AVK=avg Korean, ATK=attractive Korean, ATA=attractive Asian,
+//          AVC=avg Caucasian, ATC=attractive Caucasian,
+//          AVB=avg African, ATB=attractive African
+// LCT = lateral canthal tilt (degrees). ICD = intercanthal distance (mm).
+// IPD/FW = interpupillary distance as % of facial width.
+const RHEE_2012 = {
+  // Canthal tilt ideals (degrees, positive = outer corner higher)
+  canthalTiltIdeal: {
+    // "Attractive" column values by ethnicity — use as aesthetic target
+    asian:     { ideal: 8.64, populationMean: 9.77, source: 'Rhee 2012 ATA/AVK' },
+    caucasian: { ideal: 7.13, populationMean: 4.12, source: 'Rhee 2012 ATC/AVC' },
+    african:   { ideal: 9.98, populationMean: 5.39, source: 'Rhee 2012 ATB/AVB' }
+  },
+  // Intercanthal distance as mm — used as ratio to bizygomatic
+  icdMean: {
+    asian:     { mean: 35.40, attractive: 36.03 },  // ATK, ATA
+    caucasian: { mean: 31.62, attractive: 31.04 },  // AVC, ATC
+    african:   { mean: 32.32, attractive: 33.04 }   // AVB, ATB
+  },
+  // IPD as % of facial width
+  ipdFwPct: {
+    asian:     { mean: 44.99, attractive: 45.41 },
+    caucasian: { mean: 44.90, attractive: 46.34 },
+    african:   { mean: 46.60, attractive: 48.65 }
+  }
+};
+
+// Mommaerts M 2016, J Craniomaxillofac Surg 44:381-391
+// Male ideal: bigonial equal to bizygomatic, or up to 10% less. Range 88-100%.
+// Female ideal: Naini 2008 — 70-75% (tapered jaw preferred).
+const JAW_CHEEK_RATIO_IDEAL = {
+  male:   { lowPct: 88, highPct: 100, source: 'Mommaerts 2016 J Craniomaxillofac Surg 44' },
+  female: { lowPct: 70, highPct: 75,  source: 'Naini 2008 Dent Update 35(3)' }
+};
+
+// Naini FB 2008 + Naini et al 2017 — vertical proportions and lip ratios
+const NAINI_PROPORTIONS = {
+  verticalThirdsIdeal: { lowPct: 31, highPct: 35 }, // each third should be ~33%
+  lowerThirdSubdivisionIdeal: { lowRatio: 0.45, highRatio: 0.55 }, // upper lip : (lower lip + chin) should be 1:2 — so upper/total ≈ 0.33
+  // Using Naini's formulation: upper lip height should be ~1/3 of lower third
+  upperLipOfLowerThirdIdeal: { lowPct: 30, highPct: 36 }
+};
+
+// Intercanthal distance rule of fifths: should equal one eye width, ~20% of bizygomatic
+// Farkas 1994 neoclassical canon; Wen 2015 data supports this approximately
+const RULE_OF_FIFTHS_IDEAL = { lowPct: 19, highPct: 22 };
+
+// Alar base width ideal as % of bizygomatic — Farkas 1994, ~25-30%
+const ALAR_BASE_IDEAL_PCT = { male: { low: 25, high: 30 }, female: { low: 24, high: 29 } };
+
+// Mouth width ideal as % of bizygomatic — Farkas 1994
+const MOUTH_WIDTH_IDEAL_PCT = { male: { low: 33, high: 37 }, female: { low: 34, high: 38 } };
+
+// ============================================================================
+// LANDMARK INDICES — per Phase 2 decisions
+// ============================================================================
+const LM = {
+  glabella: 9,
+  nasion: 168,
+  subnasale: 94,
+  menton: 152,
+  stomionUpper: 13,
+  stomionLower: 14,
+  alarL: 129, alarR: 358,
+  commissureL: 61, commissureR: 291,
+  // Bizygomatic — primary pair 123/352, fallback 116/345
+  zygomaticL: 123, zygomaticR: 352,
+  zygomaticAltL: 116, zygomaticAltR: 345,
+  // Mandible approximations — flagged as less accurate
+  gonialL: 172, gonialR: 397,
+  // Canthi — averaged clusters
+  innerCanthusL: [133, 173, 155],
+  innerCanthusR: [362, 398, 382],
+  outerCanthusL: [33, 246, 161],
+  outerCanthusR: [263, 466, 388],
+  // Iris (478-point model only)
+  irisL: 468, irisR: 473,
+  // Eyelid for palpebral fissure height
+  upperLidL: 159, lowerLidL: 145,
+  upperLidR: 386, lowerLidR: 374,
+  // Brow inferior margin approximations
+  browL: 52, browR: 282
+};
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+function round(n, d=1) { return Math.round(n * Math.pow(10, d)) / Math.pow(10, d); }
+function dist(p1, p2) { return Math.sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2); }
+function avgPoint(pts) {
+  const x = pts.reduce((s,p)=>s+p.x,0)/pts.length;
+  const y = pts.reduce((s,p)=>s+p.y,0)/pts.length;
+  return { x, y };
+}
+function rotatePoint(p, cx, cy, cosA, sinA) {
+  const dx = p.x - cx, dy = p.y - cy;
+  return { x: cx + dx*cosA - dy*sinA, y: cy + dx*sinA + dy*cosA, z: p.z };
+}
+
+// ============================================================================
+// NORM LOOKUP — returns { mean, ciLow, ciHigh, ciWide, source }
+// ============================================================================
+function getWen(measure, sex, ethnicity) {
+  const row = WEN_2015[measure];
+  if (!row) return null;
+  const val = row[sex]?.[ethnicity];
+  if (!val) return null;
+  const [mean, ciLow, ciHigh] = val;
+  return { mean, ciLow, ciHigh, ciWide: (ciHigh - ciLow) > 30, source: 'Wen et al 2015 PLoS ONE 10(8):e0134525' };
+}
+
+// ============================================================================
+// SESSION STATE — for the two prompts
+// ============================================================================
+const session = {
+  demographics: {},
+  metrics: [],
+  warnings: [],
+  faceShape: null,
+  symmetryPct: null,
+  estimatedAgeRange: null,
+  landmarkIndicesUsed: JSON.stringify(LM, null, 2)
+};
+
+// ============================================================================
+// MEDIAPIPE — main thread (Worker blocked by some CSPs)
+// ============================================================================
+let landmarker = null;
+let landmarkerReady = false;
+let landmarkerLoadPromise = null;
+const MODEL_TYPE = '478';
+
+async function initLandmarker() {
+  if (landmarkerReady) return;
+  if (landmarkerLoadPromise) return landmarkerLoadPromise;
+  landmarkerLoadPromise = (async () => {
+    setStatusDot('loading');
+    setStatus('Loading landmark model (first load only, ~4MB)…');
+    const mod = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.17/+esm');
+    const { FaceLandmarker, FilesetResolver } = mod;
+    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.17/wasm');
+    landmarker = await FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+        delegate: 'CPU'
+      },
+      outputFaceBlendshapes: false,
+      runningMode: 'IMAGE',
+      numFaces: 1
+    });
+    landmarkerReady = true;
+    setStatusDot('ready');
+    hideStatus();
+  })();
+  try {
+    await landmarkerLoadPromise;
+  } catch (e) {
+    setStatusDot('error');
+    setStatus('Model load failed: ' + e.message);
+    throw e;
+  }
+}
+
+async function detectLandmarks(bitmap) {
+  await initLandmarker();
+  setStatus('Detecting landmarks…');
+  // Yield to browser so status line repaints before heavy work
+  await new Promise(r => requestAnimationFrame(r));
+  let result;
+  try {
+    result = landmarker.detect(bitmap);
+  } catch (e1) {
+    // Fallback: draw into a plain canvas first
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    result = landmarker.detect(canvas);
+  }
+  if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
+    return { error: 'No face detected in the image' };
+  }
+  const lms = result.faceLandmarks[0].map(p => ({
+    x: p.x * bitmap.width,
+    y: p.y * bitmap.height,
+    z: p.z
+  }));
+  return { landmarks: lms, modelType: MODEL_TYPE, width: bitmap.width, height: bitmap.height };
+}
+
+// ============================================================================
+// IMAGE PREPROCESSING — EXIF rotation, luminance check, face size check
+// ============================================================================
+async function loadAndPreprocess(file) {
+  const warnings = [];
+  // Use createImageBitmap with imageOrientation:'from-image' for EXIF handling
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch (e) {
+    bitmap = await createImageBitmap(file);
+  }
+
+  // Luminance check on downsampled canvas
+  const small = new OffscreenCanvas(Math.min(bitmap.width, 200), Math.min(bitmap.height, 200) * (bitmap.height/bitmap.width));
+  // Actually just sample a 200x200 area
+  const sc = new OffscreenCanvas(200, 200);
+  const sctx = sc.getContext('2d');
+  sctx.drawImage(bitmap, 0, 0, 200, 200);
+  const imgd = sctx.getImageData(0, 0, 200, 200);
+  let sumLum = 0;
+  for (let i = 0; i < imgd.data.length; i += 4) {
+    sumLum += 0.299 * imgd.data[i] + 0.587 * imgd.data[i+1] + 0.114 * imgd.data[i+2];
+  }
+  const meanLum = sumLum / (imgd.data.length / 4);
+  if (meanLum < 80) warnings.push({ level: 'warn', msg: `Image is dark (luminance ${Math.round(meanLum)}). Some metrics may be less reliable.` });
+  if (meanLum > 200) warnings.push({ level: 'warn', msg: `Image is very bright (luminance ${Math.round(meanLum)}). Some metrics may be less reliable.` });
+
+  return { bitmap, warnings, meanLum };
+}
+
+// ============================================================================
+// GLASSES HEURISTIC — look at brightness gradient across orbital region
+// ============================================================================
+function detectGlasses(landmarks, imageData, w, h) {
+  try {
+    const orbitalPts = [LM.browL, LM.browR, LM.outerCanthusL[0], LM.outerCanthusR[0], LM.innerCanthusL[0], LM.innerCanthusR[0]];
+    let sumEdge = 0, count = 0;
+    for (const idx of orbitalPts) {
+      const p = landmarks[idx];
+      if (!p) continue;
+      const x = Math.round(p.x), y = Math.round(p.y);
+      if (x < 2 || y < 2 || x >= w-2 || y >= h-2) continue;
+      // Sample a 3-pixel vertical gradient
+      const getLum = (xx, yy) => {
+        const i = (yy * w + xx) * 4;
+        return 0.299*imageData.data[i] + 0.587*imageData.data[i+1] + 0.114*imageData.data[i+2];
+      };
+      const above = getLum(x, y-2), below = getLum(x, y+2);
+      sumEdge += Math.abs(above - below);
+      count++;
+    }
+    const avgEdge = count > 0 ? sumEdge / count : 0;
+    return avgEdge > 50; // threshold — crude but catches obvious cases
+  } catch { return false; }
+}
+
+// ============================================================================
+// HEAD POSE — tilt correction, yaw estimation
+// ============================================================================
+function computeHeadPose(landmarks, modelType) {
+  // Prefer iris landmarks for horizontal reference if 478 model
+  let leftEye, rightEye;
+  if (modelType === '478' && landmarks[LM.irisL] && landmarks[LM.irisR]) {
+    leftEye = landmarks[LM.irisL];
+    rightEye = landmarks[LM.irisR];
+  } else {
+    leftEye = avgPoint(LM.outerCanthusL.concat(LM.innerCanthusL).map(i => landmarks[i]));
+    rightEye = avgPoint(LM.outerCanthusR.concat(LM.innerCanthusR).map(i => landmarks[i]));
+  }
+  const dx = rightEye.x - leftEye.x;
+  const dy = rightEye.y - leftEye.y;
+  const tiltDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+
+  // Yaw: compare left and right bizygomatic distances from midline
+  const midX = (leftEye.x + rightEye.x) / 2;
+  const zygL = landmarks[LM.zygomaticL];
+  const zygR = landmarks[LM.zygomaticR];
+  const leftHalf = Math.abs(zygL.x - midX);
+  const rightHalf = Math.abs(zygR.x - midX);
+  const yawRatio = Math.min(leftHalf, rightHalf) / Math.max(leftHalf, rightHalf);
+  // Convert ratio to approximate degrees: 1.0 = 0°, 0.9 ≈ 5°, 0.8 ≈ 10°, 0.7 ≈ 15°
+  const yawDeg = (1 - yawRatio) * 50;
+
+  return { tiltDeg, yawDeg, leftEye, rightEye, midX };
+}
+
+function correctTilt(landmarks, tiltDeg, cx, cy) {
+  if (Math.abs(tiltDeg) < 3) return landmarks;
+  const a = -tiltDeg * Math.PI / 180;
+  const cosA = Math.cos(a), sinA = Math.sin(a);
+  return landmarks.map(p => rotatePoint(p, cx, cy, cosA, sinA));
+}
+
+// ============================================================================
+// BIZYGOMATIC — use primary 123/352, fall back to 116/345 if primary is noisy
+// We use primary by default. Landmark stability test would require multiple
+// images; for a single image we trust 123/352 per the spec.
+// ============================================================================
+function getBizygomatic(landmarks) {
+  return dist(landmarks[LM.zygomaticL], landmarks[LM.zygomaticR]);
+}
+
+// ============================================================================
+// MEASUREMENT COMPUTATION
+// ============================================================================
+function computeMeasurements(landmarks, modelType, sex, ethnicity, flags) {
+  const bizygomatic = getBizygomatic(landmarks);
+  const bigonial = dist(landmarks[LM.gonialL], landmarks[LM.gonialR]);
+  const bitemporal = dist(landmarks[54], landmarks[284]); // approximate temples
+  const glabellaToMenton = dist(landmarks[LM.glabella], landmarks[LM.menton]);
+  const glabellaToNasion = dist(landmarks[LM.glabella], landmarks[LM.nasion]);
+  const nasionToSubnasale = dist(landmarks[LM.nasion], landmarks[LM.subnasale]);
+  const subnasaleToMenton = dist(landmarks[LM.subnasale], landmarks[LM.menton]);
+  const subnasaleToStomion = dist(landmarks[LM.subnasale], landmarks[LM.stomionUpper]);
+  const stomionToMenton = dist(landmarks[LM.stomionLower], landmarks[LM.menton]);
+  const alarWidth = dist(landmarks[LM.alarL], landmarks[LM.alarR]);
+  const mouthWidth = dist(landmarks[LM.commissureL], landmarks[LM.commissureR]);
+
+  // Canthi
+  const innerLPt = avgPoint(LM.innerCanthusL.map(i => landmarks[i]));
+  const innerRPt = avgPoint(LM.innerCanthusR.map(i => landmarks[i]));
+  const outerLPt = avgPoint(LM.outerCanthusL.map(i => landmarks[i]));
+  const outerRPt = avgPoint(LM.outerCanthusR.map(i => landmarks[i]));
+  const intercanthalDist = dist(innerLPt, innerRPt);
+
+  let ipd = null;
+  if (modelType === '478') {
+    ipd = dist(landmarks[LM.irisL], landmarks[LM.irisR]);
+  }
+
+  // Canthal tilt: average vector from multiple inner-outer pairs
+  function tiltForSide(innerIdxs, outerIdxs, isLeftSide) {
+    const vectors = [];
+    for (const iInner of innerIdxs) {
+      for (const iOuter of outerIdxs) {
+        const pIn = landmarks[iInner], pOut = landmarks[iOuter];
+        // In image coords, y increases downward. Positive tilt = outer higher = outer.y < inner.y
+        // Angle: outer relative to inner, with positive = outer above
+        let dx = pOut.x - pIn.x;
+        let dy = pIn.y - pOut.y; // flip so positive = outer above
+        // For left side, outer is to the left (dx < 0), so flip sign
+        if (isLeftSide) dx = -dx;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        vectors.push(angle);
+      }
+    }
+    return vectors.reduce((a,b)=>a+b,0) / vectors.length;
+  }
+  const canthalTiltL = tiltForSide(LM.innerCanthusL, LM.outerCanthusL, true);
+  const canthalTiltR = tiltForSide(LM.innerCanthusR, LM.outerCanthusR, false);
+
+  // Palpebral fissure height
+  const pfhL = dist(landmarks[LM.upperLidL], landmarks[LM.lowerLidL]);
+  const pfhR = dist(landmarks[LM.upperLidR], landmarks[LM.lowerLidR]);
+  const pfhAsymPct = Math.abs(pfhL - pfhR) / Math.max(pfhL, pfhR) * 100;
+
+  // Brow to upper lid
+  const browLidL = dist(landmarks[LM.browL], landmarks[LM.upperLidL]);
+  const browLidR = dist(landmarks[LM.browR], landmarks[LM.upperLidR]);
+  const browLidAvg = (browLidL + browLidR) / 2;
+
+  // Scleral show estimate — check if lower lid y > iris lower bound y
+  let scleralShow = false;
+  if (modelType === '478') {
+    const irisLowerL = landmarks[471]; const lowLidL = landmarks[LM.lowerLidL];
+    if (irisLowerL && lowLidL) scleralShow = lowLidL.y > irisLowerL.y + 1;
+  }
+
+  // Commissure tilt — are mouth corners above, at, or below lip midline?
+  const lipMidY = (landmarks[LM.stomionUpper].y + landmarks[LM.stomionLower].y) / 2;
+  const commMidY = (landmarks[LM.commissureL].y + landmarks[LM.commissureR].y) / 2;
+  const commTiltDiff = lipMidY - commMidY; // positive = corners above midline (upward)
+  let commTiltLabel;
+  if (commTiltDiff > 2) commTiltLabel = 'upturned';
+  else if (commTiltDiff < -2) commTiltLabel = 'downturned';
+  else commTiltLabel = 'neutral';
+
+  // Symmetry — post-tilt-correction, bilateral pairs vs facial midline
+  const midline = (innerLPt.x + innerRPt.x) / 2;
+  function asymPct(leftPt, rightPt) {
+    const dL = Math.abs(leftPt.x - midline);
+    const dR = Math.abs(rightPt.x - midline);
+    return Math.abs(dL - dR) / Math.max(dL, dR) * 100;
+  }
+  const symPairs = {
+    bizygomatic: asymPct(landmarks[LM.zygomaticL], landmarks[LM.zygomaticR]),
+    bigonial: asymPct(landmarks[LM.gonialL], landmarks[LM.gonialR]),
+    commissures: asymPct(landmarks[LM.commissureL], landmarks[LM.commissureR]),
+    innerCanthi: asymPct(innerLPt, innerRPt),
+    outerCanthi: asymPct(outerLPt, outerRPt),
+    alarBase: asymPct(landmarks[LM.alarL], landmarks[LM.alarR])
+  };
+  const symAvgDeviation = Object.values(symPairs).reduce((a,b)=>a+b,0) / 6;
+  const symmetryScore = 100 - symAvgDeviation; // higher is better
+  const worstPair = Object.entries(symPairs).sort((a,b)=>b[1]-a[1])[0];
+
+  return {
+    raw: { bizygomatic, bigonial, bitemporal, glabellaToMenton, glabellaToNasion,
+           nasionToSubnasale, subnasaleToMenton, subnasaleToStomion, stomionToMenton,
+           alarWidth, mouthWidth, intercanthalDist, ipd,
+           canthalTiltL, canthalTiltR, pfhL, pfhR, pfhAsymPct, browLidAvg,
+           scleralShow, commTiltLabel, commTiltDiff,
+           symmetryScore, symPairs, worstPair }
+  };
+}
+
+// ============================================================================
+// METRIC PACKAGING — assemble each metric with norm, verdict, tier
+// ============================================================================
+function classify(value, idealLow, idealHigh, borderlineMarginPct = 15) {
+  if (value >= idealLow && value <= idealHigh) return 'good';
+  const range = idealHigh - idealLow;
+  const margin = range * borderlineMarginPct / 100;
+  if (value >= idealLow - margin && value <= idealHigh + margin) return 'borderline';
+  return 'bad';
+}
+
+function packageMetrics(m, sex, ethnicity, flags) {
+  const r = m.raw;
+  const metrics = [];
+  const biz = r.bizygomatic;
+
+  // --- Facial proportions ---
+  const facialIndex = r.glabellaToMenton / biz * 100;
+  metrics.push({
+    key: 'facialIndex',
+    section: 'Facial proportions',
+    name: 'Facial index',
+    desc: 'Glabella-to-menton height as percentage of bizygomatic width. Anchors the overall face shape category.',
+    value: round(facialIndex, 1), unit: '%',
+    idealLow: 85, idealHigh: 94,
+    displayMin: 70, displayMax: 110,
+    classify: classify(facialIndex, 85, 94, 10),
+    citation: 'Farkas 1994; Prasad & Shubhnita 2019',
+    tier: null
+  });
+
+  // fWHR per Carré 2008: bizygomatic / (brow to upper lip)
+  // Approximate brow-to-upper-lip as (glabella-to-stomion) since brow height ≈ glabella height
+  const browToUpperLip = r.glabellaToNasion + r.nasionToSubnasale + r.subnasaleToStomion;
+  const fWHRtrue = biz / browToUpperLip;
+  metrics.push({
+    key: 'fWHR',
+    section: 'Facial proportions',
+    name: 'fWHR (dominance signal)',
+    desc: 'Facial width-to-height ratio. Carré 2008 established this as a dominance/aggression signal, NOT an attractiveness metric. Lefevre 2013 showed the attractiveness link is context-dependent.',
+    value: round(fWHRtrue, 2), unit: '',
+    idealLow: 1.70, idealHigh: 2.00,
+    displayMin: 1.3, displayMax: 2.4,
+    classify: 'good', // not rated against attractiveness — always neutral
+    neutralRating: true,
+    citation: 'Carré & McCormick 2008; Lefevre et al 2013',
+    tier: null,
+    note: 'Displayed for context only. Tool does not rate fWHR against attractiveness — the literature does not support this.'
+  });
+
+  const jawCheekPct = r.bigonial / biz * 100;
+  const jawIdeal = JAW_CHEEK_RATIO_IDEAL[sex];
+  metrics.push({
+    key: 'jawCheek',
+    section: 'Facial proportions',
+    name: 'Jaw-to-cheekbone ratio',
+    desc: 'Bigonial as percentage of bizygomatic. Soft-tissue estimate from frontal photo — less reliable than other metrics because the true gonial angle requires a profile or 3D scan.',
+    value: round(jawCheekPct, 1), unit: '%',
+    idealLow: jawIdeal.lowPct, idealHigh: jawIdeal.highPct,
+    displayMin: 55, displayMax: 110,
+    classify: classify(jawCheekPct, jawIdeal.lowPct, jawIdeal.highPct, 10),
+    citation: jawIdeal.source,
+    tier: 'surgical',
+    reducedConfidence: true,
+    note: sex === 'male'
+      ? 'Mommaerts 2016: male ideal is bigonial equal to or up to 10% less than bizygomatic (88–100%). This replaces the older 68–76% figure, which applies to female aesthetics.'
+      : 'Naini 2008: female ideal is a tapered jaw at 70–75% of bizygomatic for diamond/heart face shapes.'
+  });
+
+  const templeCheekPct = r.bitemporal / biz * 100;
+  metrics.push({
+    key: 'templeCheek',
+    section: 'Facial proportions',
+    name: 'Temple-to-cheekbone ratio',
+    desc: 'Bitemporal as percentage of bizygomatic. Temples should taper inward from the midface to emphasise the cheekbones.',
+    value: round(templeCheekPct, 1), unit: '%',
+    idealLow: 80, idealHigh: 90,
+    displayMin: 65, displayMax: 105,
+    classify: classify(templeCheekPct, 80, 90),
+    citation: 'Naini 2008 Dent Update 35(3)',
+    tier: null
+  });
+
+  // --- Transverse proportions ---
+  const icdPct = r.intercanthalDist / biz * 100;
+  metrics.push({
+    key: 'icd',
+    section: 'Transverse proportions',
+    name: 'Intercanthal distance',
+    desc: 'As percentage of bizygomatic. By the rule of fifths, this should equal one eye width, roughly 20% of facial width.',
+    value: round(icdPct, 1), unit: '%',
+    idealLow: RULE_OF_FIFTHS_IDEAL.lowPct, idealHigh: RULE_OF_FIFTHS_IDEAL.highPct,
+    displayMin: 14, displayMax: 28,
+    classify: classify(icdPct, RULE_OF_FIFTHS_IDEAL.lowPct, RULE_OF_FIFTHS_IDEAL.highPct),
+    citation: 'Farkas 1994; Wen et al 2015',
+    tier: null
+  });
+
+  if (r.ipd) {
+    const ipdPct = r.ipd / biz * 100;
+    const ipdIdeal = RHEE_2012.ipdFwPct[ethnicity];
+    metrics.push({
+      key: 'ipd',
+      section: 'Transverse proportions',
+      name: 'Interpupillary distance',
+      desc: 'Pupil-to-pupil distance as percentage of bizygomatic width. Uses iris landmarks from the 478-point model.',
+      value: round(ipdPct, 1), unit: '%',
+      idealLow: ipdIdeal.attractive - 2, idealHigh: ipdIdeal.attractive + 2,
+      displayMin: 38, displayMax: 54,
+      classify: classify(ipdPct, ipdIdeal.attractive - 2, ipdIdeal.attractive + 2),
+      citation: 'Rhee et al 2012 Aesthet Plast Surg 36(5):1236-45',
+      tier: null
+    });
+  }
+
+  const alarPct = r.alarWidth / biz * 100;
+  const alarIdeal = ALAR_BASE_IDEAL_PCT[sex];
+  metrics.push({
+    key: 'alar',
+    section: 'Transverse proportions',
+    name: 'Nasal alar width',
+    desc: 'Ala-to-ala width as percentage of bizygomatic. Should align with the inner canthi (rule of fifths).',
+    value: round(alarPct, 1), unit: '%',
+    idealLow: alarIdeal.low, idealHigh: alarIdeal.high,
+    displayMin: 18, displayMax: 38,
+    classify: classify(alarPct, alarIdeal.low, alarIdeal.high),
+    citation: 'Farkas 1994; Wen et al 2015',
+    tier: 'surgical'
+  });
+
+  const mouthPct = r.mouthWidth / biz * 100;
+  const mouthIdeal = MOUTH_WIDTH_IDEAL_PCT[sex];
+  metrics.push({
+    key: 'mouth',
+    section: 'Transverse proportions',
+    name: 'Mouth commissure width',
+    desc: 'Corner-to-corner mouth width as percentage of bizygomatic. Commissures should align with the medial iris borders.',
+    value: round(mouthPct, 1), unit: '%',
+    idealLow: mouthIdeal.low, idealHigh: mouthIdeal.high,
+    displayMin: 26, displayMax: 44,
+    classify: classify(mouthPct, mouthIdeal.low, mouthIdeal.high),
+    citation: 'Farkas 1994',
+    tier: null
+  });
+
+  // --- Vertical thirds ---
+  const upperThirdPct = r.glabellaToNasion / r.glabellaToMenton * 100;
+  const midThirdPct = r.nasionToSubnasale / r.glabellaToMenton * 100;
+  const lowerThirdPct = r.subnasaleToMenton / r.glabellaToMenton * 100;
+  metrics.push({
+    key: 'upperThird', section: 'Vertical thirds', name: 'Upper third',
+    desc: 'Glabella to nasion as percentage of total face height. Should be roughly one-third.',
+    value: round(upperThirdPct, 1), unit: '%',
+    idealLow: NAINI_PROPORTIONS.verticalThirdsIdeal.lowPct,
+    idealHigh: NAINI_PROPORTIONS.verticalThirdsIdeal.highPct,
+    displayMin: 20, displayMax: 45,
+    classify: classify(upperThirdPct, 31, 35),
+    citation: 'Naini 2008', tier: null
+  });
+  metrics.push({
+    key: 'middleThird', section: 'Vertical thirds', name: 'Middle third',
+    desc: 'Nasion to subnasale. A long midface reads as juvenile/feminine; a shorter midface reads as masculine.',
+    value: round(midThirdPct, 1), unit: '%',
+    idealLow: 31, idealHigh: 35,
+    displayMin: 20, displayMax: 45,
+    classify: classify(midThirdPct, 31, 35),
+    citation: 'Naini 2008; Carré 2008', tier: null
+  });
+  metrics.push({
+    key: 'lowerThird', section: 'Vertical thirds', name: 'Lower third',
+    desc: 'Subnasale to menton. Slightly larger than the other thirds is acceptable in males.',
+    value: round(lowerThirdPct, 1), unit: '%',
+    idealLow: 31, idealHigh: sex === 'male' ? 37 : 35,
+    displayMin: 20, displayMax: 45,
+    classify: classify(lowerThirdPct, 31, sex === 'male' ? 37 : 35),
+    citation: 'Naini 2008', tier: null
+  });
+
+  const upperLipOfLowerThirdPct = r.subnasaleToStomion / r.subnasaleToMenton * 100;
+  metrics.push({
+    key: 'lipSubdivision', section: 'Vertical thirds', name: 'Upper lip of lower third',
+    desc: 'Subnasale to upper stomion, as percentage of lower third. Ideal ratio 1:2 upper lip to (lower lip + chin).',
+    value: round(upperLipOfLowerThirdPct, 1), unit: '%',
+    idealLow: 30, idealHigh: 36,
+    displayMin: 20, displayMax: 50,
+    classify: classify(upperLipOfLowerThirdPct, 30, 36),
+    citation: 'Naini 2008', tier: null
+  });
+
+  // --- Periocular ---
+  metrics.push({
+    key: 'canthalTiltL', section: 'Periocular',
+    name: 'Canthal tilt (left)',
+    desc: 'Outer canthus angle relative to inner. Positive = outer corner higher. Bashour 2007: 93% of viewers prefer positive tilt.',
+    value: round(r.canthalTiltL, 1), unit: '°',
+    idealLow: RHEE_2012.canthalTiltIdeal[ethnicity].ideal - 2,
+    idealHigh: RHEE_2012.canthalTiltIdeal[ethnicity].ideal + 2,
+    displayMin: -5, displayMax: 15,
+    classify: classify(r.canthalTiltL, RHEE_2012.canthalTiltIdeal[ethnicity].ideal - 2, RHEE_2012.canthalTiltIdeal[ethnicity].ideal + 2),
+    citation: 'Bashour 2007; Rhee et al 2012',
+    tier: 'surgical',
+    reducedConfidence: flags.glasses
+  });
+  metrics.push({
+    key: 'canthalTiltR', section: 'Periocular',
+    name: 'Canthal tilt (right)',
+    desc: 'Outer canthus angle relative to inner. Asymmetry between sides is itself an aesthetic marker.',
+    value: round(r.canthalTiltR, 1), unit: '°',
+    idealLow: RHEE_2012.canthalTiltIdeal[ethnicity].ideal - 2,
+    idealHigh: RHEE_2012.canthalTiltIdeal[ethnicity].ideal + 2,
+    displayMin: -5, displayMax: 15,
+    classify: classify(r.canthalTiltR, RHEE_2012.canthalTiltIdeal[ethnicity].ideal - 2, RHEE_2012.canthalTiltIdeal[ethnicity].ideal + 2),
+    citation: 'Bashour 2007; Rhee et al 2012',
+    tier: 'surgical',
+    reducedConfidence: flags.glasses
+  });
+  metrics.push({
+    key: 'pfhAsym', section: 'Periocular',
+    name: 'Eye height symmetry',
+    desc: 'Palpebral fissure height difference between left and right, as percentage of the larger. Noticeable asymmetry may indicate ptosis.',
+    value: round(r.pfhAsymPct, 1), unit: '%',
+    idealLow: 0, idealHigh: 5,
+    displayMin: 0, displayMax: 25,
+    classify: r.pfhAsymPct <= 5 ? 'good' : r.pfhAsymPct <= 10 ? 'borderline' : 'bad',
+    citation: 'Neimkin & Holds 2016; Vaca et al 2019',
+    tier: 'injectable',
+    reducedConfidence: flags.glasses
+  });
+  // Scleral show (binary)
+  metrics.push({
+    key: 'scleralShow', section: 'Periocular',
+    name: 'Scleral show (lower)',
+    desc: 'Whether white sclera is visible below the iris at rest. Minimal or absent is aesthetically desirable and indicates adequate midface support.',
+    value: r.scleralShow ? 'Present' : 'Absent', unit: '',
+    binary: true,
+    classify: r.scleralShow ? 'borderline' : 'good',
+    citation: 'Vaca et al 2019',
+    tier: 'surgical'
+  });
+
+  // --- Lips and lower face ---
+  // Quantitative lip ratio is omitted: MediaPipe landmark pairs for vermillion
+  // upper and lower borders are fragile under different expressions, so reporting
+  // the commissure tilt (more robust) instead.
+  metrics.push({
+    key: 'commTilt', section: 'Lips and lower face',
+    name: 'Commissure tilt',
+    desc: 'Whether mouth corners sit above, at, or below the lip midline at rest. Upturned or neutral is preferable to downturned.',
+    value: r.commTiltLabel, unit: '',
+    binary: true,
+    classify: r.commTiltLabel === 'downturned' ? 'bad' : 'good',
+    citation: 'Naini 2008',
+    tier: 'injectable'
+  });
+
+  // --- Symmetry ---
+  metrics.push({
+    key: 'symmetry', section: 'Symmetry',
+    name: 'Bilateral symmetry',
+    desc: 'Post-tilt-correction bilateral landmark symmetry across bizygomatic, bigonial, commissures, canthi, and alar base.',
+    value: round(r.symmetryScore, 1), unit: '%',
+    idealLow: 97, idealHigh: 100,
+    displayMin: 80, displayMax: 100,
+    classify: r.symmetryScore >= 97 ? 'good' : r.symmetryScore >= 93 ? 'borderline' : 'bad',
+    citation: 'Rhodes 2006',
+    tier: null,
+    note: `Largest asymmetry at: ${r.worstPair[0]} (${round(r.worstPair[1],1)}%)`
+  });
+
+  return { metrics, vertical: { upperThird: upperThirdPct, midThird: midThirdPct, lowerThird: lowerThirdPct } };
+}
+
+function distBrowToUpperLip_deprecated() { return 0; } // kept as placeholder removal marker
+
+// ============================================================================
+// FACE SHAPE CLASSIFICATION
+// ============================================================================
+function classifyFaceShape(facialIndex, jawCheekPct, sex) {
+  if (sex === 'male') {
+    if (facialIndex > 100) return { name: 'Very long face', desc: 'Vertical excess. Flagged as potentially out of proportion.', emphasise: 'Horizontal width — beard fullness at jawline, wider collars.', hair: 'Avoid vertical volume on top; add width at the sides.' };
+    if (facialIndex >= 85 && facialIndex <= 94 && jawCheekPct >= 88) return { name: 'Oval-Square (male ideal)', desc: 'Balanced face with strong jaw width matching cheekbones. Male aesthetic ideal per Mommaerts 2016.', emphasise: 'Maintain jawline definition; lean body composition.', hair: 'Most styles work; textured crop, side part, or classic taper all suit this shape.' };
+    if (facialIndex >= 85 && facialIndex <= 94 && jawCheekPct < 85) return { name: 'Diamond (tapered)', desc: 'Strong cheekbones with narrow jaw. Undesirable in males per the Mommaerts 88–100% ideal — jaw reads as underdeveloped.', emphasise: 'Build jaw mass (beard, mewing, surgical consideration if severe).', hair: 'Avoid styles that narrow the jaw further; keep volume at the sides.' };
+    if (facialIndex > 94 && jawCheekPct >= 85) return { name: 'Oblong', desc: 'Long face with proportional jaw. Common in models; works well with angular features.', emphasise: 'Lateral hair volume, full brows, strong beard.', hair: 'Side volume, avoid pompadours or high quiffs that extend the face.' };
+    if (facialIndex >= 82 && facialIndex <= 94 && jawCheekPct > 100) return { name: 'Square', desc: 'Jaw equal to or wider than cheekbones. Masculine reading; can indicate midface deficiency if cheekbones are low.', emphasise: 'Midface support — cheekbone definition, brow prominence.', hair: 'Soft top styles to offset the angular lower face.' };
+    if (facialIndex < 82 && jawCheekPct >= 88) return { name: 'Round-Square', desc: 'Short face with proportional jaw width. Reads as compact/athletic.', emphasise: 'Height on top of head, vertical styling.', hair: 'Pompadour, textured top with short sides to add perceived height.' };
+    if (facialIndex < 82) return { name: 'Round (tapered)', desc: 'Short, tapered face. Tends to read as juvenile in males.', emphasise: 'Jaw development; beard for definition.', hair: 'Vertical styles; avoid short-all-round cuts that emphasise roundness.' };
+    return { name: 'Intermediate', desc: 'Does not fall cleanly into any category — typically indicates mixed proportions.', emphasise: 'Review individual metric deviations.', hair: 'Consult a stylist who works with your specific proportions.' };
+  } else {
+    // Female tree per original spec
+    if (facialIndex >= 85 && facialIndex <= 94 && jawCheekPct < 70) return { name: 'Diamond', desc: 'Narrow tapered jaw with wide cheekbones. Classic female aesthetic.', emphasise: 'Maintain cheekbone prominence.', hair: 'Most styles work; soft layers around jaw.' };
+    if (facialIndex >= 85 && facialIndex <= 94 && jawCheekPct >= 70 && jawCheekPct <= 76) return { name: 'Oval', desc: 'Balanced and considered universally flattering.', emphasise: 'Versatile — most styles work.', hair: 'Nearly any style suits.' };
+    if (facialIndex > 94 && jawCheekPct < 68) return { name: 'Heart', desc: 'Wide forehead tapering to narrow chin.', emphasise: 'Soft jaw framing.', hair: 'Chin-length or longer to balance forehead width.' };
+    if (facialIndex > 94 && jawCheekPct >= 68 && jawCheekPct <= 76) return { name: 'Oblong-Oval', desc: 'Longer oval.', emphasise: 'Horizontal elements.', hair: 'Bangs or layered cuts to shorten apparent length.' };
+    if (facialIndex > 100) return { name: 'Oblong', desc: 'Very long face.', emphasise: 'Horizontal features.', hair: 'Avoid vertical volume.' };
+    if (facialIndex >= 82 && facialIndex <= 94 && jawCheekPct > 76) return { name: 'Square', desc: 'Wider jaw — more masculine reading.', emphasise: 'Soft styling to offset angularity.', hair: 'Soft waves, side-swept.' };
+    if (facialIndex < 82 && jawCheekPct > 72) return { name: 'Round', desc: 'Short and wide.', emphasise: 'Vertical styling.', hair: 'Height on top, longer cuts.' };
+    if (facialIndex < 82 && jawCheekPct <= 72) return { name: 'Round-Heart', desc: 'Short face with tapered jaw.', emphasise: 'Cheekbone definition.', hair: 'Angled cuts to add apparent length.' };
+    return { name: 'Intermediate', desc: 'Mixed proportions.', emphasise: 'Review individual metrics.', hair: 'Stylist consultation.' };
+  }
+}
+
+// ============================================================================
+// PERCEIVED AGE ESTIMATE
+// ============================================================================
+function estimateAge(m, actualAge) {
+  // Very rough geometric proxy. Baseline = actualAge. Adjust based on:
+  // - Brow-to-lid distance (shorter = younger look, longer = ageing/ptosis)
+  // - Commissure tilt (downturned = older)
+  // - Scleral show (present = older)
+  const r = m.raw;
+  let delta = 0;
+  // Brow-to-lid: typical young adult ~15-20mm relative to IPD ~63mm, so ratio ~0.25-0.32
+  const bizEst = r.bizygomatic;
+  const browLidRatio = r.browLidAvg / bizEst;
+  if (browLidRatio > 0.18) delta += 3; // elevated brow = ptotic
+  if (browLidRatio < 0.12) delta -= 2;
+  if (r.commTiltLabel === 'downturned') delta += 3;
+  if (r.scleralShow) delta += 2;
+  // Return as range ±3 around actualAge + delta
+  const center = Math.max(16, (actualAge || 22) + delta);
+  return { low: Math.round(center - 3), high: Math.round(center + 3) };
+}
+
+// ============================================================================
+// UI
+// ============================================================================
+const statusDot = document.getElementById('statusDot');
+const statusLine = document.getElementById('statusLine');
+const statusLineCompare = document.getElementById('statusLineCompare');
+const warningsEl = document.getElementById('warnings');
+const warningsElCompare = document.getElementById('warningsCompare');
+const resultsEl = document.getElementById('results');
+const summaryRowEl = document.getElementById('summaryRow');
+const metricsContainerEl = document.getElementById('metricsContainer');
+const disclaimerEl = document.getElementById('disclaimer');
+
+function setStatusDot(s) { statusDot.className = 'status-dot ' + s; }
+function setStatus(msg, inCompare=false) {
+  const el = inCompare ? statusLineCompare : statusLine;
+  el.textContent = msg; el.classList.add('visible');
+}
+function hideStatus() { statusLine.classList.remove('visible'); statusLineCompare.classList.remove('visible'); }
+
+function showWarnings(warnings, inCompare=false) {
+  const el = inCompare ? warningsElCompare : warningsEl;
+  el.innerHTML = '';
+  for (const w of warnings) {
+    const div = document.createElement('div');
+    div.className = 'warning-box' + (w.level === 'danger' ? ' danger' : '');
+    div.textContent = w.msg;
+    el.appendChild(div);
+  }
+}
+
+// File handlers
+function bindUpload(zoneEl, inputEl, handler) {
+  zoneEl.addEventListener('click', () => inputEl.click());
+  zoneEl.addEventListener('dragover', e => { e.preventDefault(); zoneEl.classList.add('drag'); });
+  zoneEl.addEventListener('dragleave', () => zoneEl.classList.remove('drag'));
+  zoneEl.addEventListener('drop', e => {
+    e.preventDefault(); zoneEl.classList.remove('drag');
+    if (e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]);
+  });
+  inputEl.addEventListener('change', () => { if (inputEl.files[0]) handler(inputEl.files[0]); });
+}
+
+document.getElementById('compareMode').addEventListener('change', e => {
+  document.getElementById('singleUpload').style.display = e.target.checked ? 'none' : 'block';
+  document.getElementById('compareUpload').style.display = e.target.checked ? 'block' : 'none';
+  resultsEl.classList.remove('visible');
+});
+
+let beforeAnalysis = null, afterAnalysis = null;
+
+bindUpload(
+  document.getElementById('uploadZone'),
+  document.getElementById('fileInput'),
+  file => processImage(file, false)
+);
+bindUpload(
+  document.getElementById('uploadZoneA'),
+  document.getElementById('fileInputA'),
+  file => processImage(file, true, 'before')
+);
+bindUpload(
+  document.getElementById('uploadZoneB'),
+  document.getElementById('fileInputB'),
+  file => processImage(file, true, 'after')
+);
+
+async function processImage(file, isCompareMode, slot=null) {
+  try {
+    setStatusDot('loading');
+    setStatus('Loading image…', isCompareMode);
+    const pre = await loadAndPreprocess(file);
+
+    const bitmap = pre.bitmap;
+    // Face size check — run detection first, then evaluate
+    setStatus('Running landmark detection…', isCompareMode);
+    const detect = await detectLandmarks(bitmap);
+    if (detect.error) {
+      setStatusDot('error');
+      setStatus('Error: ' + detect.error, isCompareMode);
+      return;
+    }
+
+    const warnings = [...pre.warnings];
+
+    // Face size validation — use bizygomatic span vs image width as proxy
+    const bizygSpan = Math.abs(detect.landmarks[LM.zygomaticL].x - detect.landmarks[LM.zygomaticR].x);
+    const faceAreaFraction = (bizygSpan * bizygSpan * 1.5) / (detect.width * detect.height);
+    if (faceAreaFraction < 0.20) {
+      warnings.push({ level: 'warn', msg: 'Face occupies less than 20% of frame area. Measurements will be less accurate. Reshoot with face closer to camera.' });
+    }
+
+    // Image data for glasses detection
+    const cv = new OffscreenCanvas(detect.width, detect.height);
+    const cvctx = cv.getContext('2d');
+    cvctx.drawImage(bitmap, 0, 0);
+    const imgData = cvctx.getImageData(0, 0, detect.width, detect.height);
+    const hasGlasses = detectGlasses(detect.landmarks, imgData, detect.width, detect.height);
+    if (hasGlasses) warnings.push({ level: 'warn', msg: 'Glasses appear to be present. Periocular metrics (canthal tilt, eye height, palpebral fissure) may be unreliable.' });
+
+    // Head pose
+    const pose = computeHeadPose(detect.landmarks, detect.modelType);
+    let correctedLandmarks = detect.landmarks;
+    let tiltApplied = false;
+    if (Math.abs(pose.tiltDeg) >= 3) {
+      correctedLandmarks = correctTilt(detect.landmarks, pose.tiltDeg, pose.midX, (pose.leftEye.y + pose.rightEye.y)/2);
+      tiltApplied = true;
+      warnings.push({ level: 'warn', msg: `Head tilt ${round(pose.tiltDeg,1)}° detected — rotation correction applied. Symmetry score reflects post-correction values.` });
+    }
+    if (pose.yawDeg >= 9) {
+      warnings.push({ level: 'danger', msg: `Head yaw estimated at ${round(pose.yawDeg,1)}°. Transverse measurements are unreliable. Retake the photo face-on.` });
+    } else if (pose.yawDeg >= 5) {
+      warnings.push({ level: 'warn', msg: `Head yaw ~${round(pose.yawDeg,1)}°. Transverse measurements (bizygomatic, ratios) have reduced accuracy.` });
+    }
+
+    const sex = document.getElementById('sex').value;
+    const ethnicity = document.getElementById('ethnicity').value;
+    const age = parseInt(document.getElementById('age').value) || 22;
+
+    const flags = { glasses: hasGlasses, yaw: pose.yawDeg, tilt: pose.tiltDeg, modelType: detect.modelType, lowLight: pre.meanLum < 80 };
+
+    const measurements = computeMeasurements(correctedLandmarks, detect.modelType, sex, ethnicity, flags);
+    const pkg = packageMetrics(measurements, sex, ethnicity, flags);
+
+    const facialIdxMetric = pkg.metrics.find(m => m.key === 'facialIndex');
+    const jawMetric = pkg.metrics.find(m => m.key === 'jawCheek');
+    const faceShape = classifyFaceShape(facialIdxMetric.value, jawMetric.value, sex);
+    const ageEstimate = estimateAge(measurements, age);
+
+    const analysis = {
+      metrics: pkg.metrics,
+      raw: measurements.raw,
+      faceShape, ageEstimate, warnings, flags,
+      demographics: { sex, ethnicity, age, modelType: detect.modelType }
+    };
+
+    if (isCompareMode) {
+      if (slot === 'before') beforeAnalysis = analysis;
+      if (slot === 'after') afterAnalysis = analysis;
+      showWarnings(warnings, true);
+      if (beforeAnalysis && afterAnalysis) {
+        renderComparison();
+      } else {
+        setStatus(slot === 'before' ? 'Before photo processed. Now upload after photo.' : 'After photo processed. Now upload before photo.', true);
+      }
+    } else {
+      showWarnings(warnings, false);
+      renderSingle(analysis);
+    }
+
+    setStatusDot('ready');
+    hideStatus();
+  } catch (err) {
+    console.error(err);
+    setStatusDot('error');
+    setStatus('Error: ' + err.message, isCompareMode);
+  }
+}
+
+function renderSingle(a) {
+  session.demographics = a.demographics;
+  session.metrics = a.metrics;
+  session.warnings = a.warnings;
+  session.faceShape = a.faceShape;
+  session.symmetryPct = a.metrics.find(m => m.key === 'symmetry')?.value;
+  session.estimatedAgeRange = a.ageEstimate;
+
+  const inRange = a.metrics.filter(m => m.classify === 'good' && !m.neutralRating).length;
+  const total = a.metrics.filter(m => !m.neutralRating).length;
+
+  summaryRowEl.innerHTML = `
+    <div class="summary-item"><div class="summary-value">${inRange}/${total}</div><div class="summary-label">Metrics in range</div></div>
+    <div class="summary-item"><div class="summary-value">${a.faceShape.name.split('(')[0].trim()}</div><div class="summary-label">Face shape</div></div>
+    <div class="summary-item"><div class="summary-value">${a.metrics.find(m=>m.key==='symmetry')?.value || '—'}%</div><div class="summary-label">Symmetry</div></div>
+    <div class="summary-item"><div class="summary-value">${a.ageEstimate.low}–${a.ageEstimate.high}</div><div class="summary-label">Estimated age</div></div>
+  `;
+
+  // Sort metrics: bad (by deviation), borderline, good
+  const sorted = [...a.metrics].sort((x, y) => {
+    const order = { bad: 0, borderline: 1, good: 2 };
+    const dx = order[x.classify] ?? 3;
+    const dy = order[y.classify] ?? 3;
+    if (dx !== dy) return dx - dy;
+    return 0;
+  });
+
+  // Group by section
+  const sections = {};
+  for (const m of sorted) {
+    if (!sections[m.section]) sections[m.section] = [];
+    sections[m.section].push(m);
+  }
+
+  let html = '';
+  // Show face shape box first
+  html += `<div class="metric"><div class="metric-header"><div class="metric-name">Face shape: ${a.faceShape.name}</div></div>
+    <div class="metric-desc">${a.faceShape.desc}</div>
+    <div class="metric-note"><strong>Emphasise:</strong> ${a.faceShape.emphasise}</div>
+    <div class="metric-note"><strong>Hair:</strong> ${a.faceShape.hair}</div></div>`;
+
+  for (const [secName, secMetrics] of Object.entries(sections)) {
+    html += `<div class="section-heading">${secName}</div>`;
+    for (const m of secMetrics) {
+      html += renderMetric(m);
+    }
+  }
+
+  metricsContainerEl.innerHTML = html;
+
+  // Citations list for disclaimer
+  const citations = [...new Set(a.metrics.map(m => m.citation))].filter(Boolean);
+  disclaimerEl.innerHTML = `Measurements are estimated from facial landmark coordinates detected by MediaPipe Face Landmarker (${a.demographics.modelType === '478' ? '478-point' : '468-point fallback'} model). Accuracy is inherently limited by photo quality, lighting, head angle, and the 2D nature of the analysis. Values are proportional estimates, not absolute millimetres. Skin quality, texture, pore size, and pigmentation cannot be assessed by this tool. Perceived age is a rough geometric estimate only. This tool is not a medical diagnosis. Consult a board-certified plastic surgeon, maxillofacial surgeon, or aesthetic clinician for clinical assessment.<br><br><strong>Benchmarks sourced from:</strong> ${citations.join('; ')}.`;
+
+  resultsEl.classList.add('visible');
+  window.scrollTo({ top: resultsEl.offsetTop - 20, behavior: 'smooth' });
+}
+
+function renderMetric(m, deltaInfo=null) {
+  const displayValue = m.binary ? m.value : `${m.value}${m.unit}`;
+  const cls = m.classify === 'good' ? '' : m.classify;
+  let bar = '';
+  if (!m.binary && typeof m.value === 'number') {
+    const dMin = m.displayMin, dMax = m.displayMax;
+    const pct = (v) => Math.max(0, Math.min(100, (v - dMin) / (dMax - dMin) * 100));
+    const idealLeft = Math.max(0, pct(m.idealLow)), idealRight = Math.min(100, pct(m.idealHigh));
+    const idealWidth = Math.max(0, idealRight - idealLeft);
+    const markerPos = pct(m.value);
+    bar = `
+      <div class="bar-wrap">
+        <div class="bar-track"></div>
+        <div class="bar-ideal" style="left:${idealLeft}%;width:${idealWidth}%"></div>
+        <div class="bar-marker ${m.classify}" style="left:${markerPos}%"></div>
+      </div>
+      <div class="bar-labels">
+        <span>${dMin}${m.unit}</span>
+        <span>ideal ${m.idealLow}–${m.idealHigh}${m.unit}</span>
+        <span>${dMax}${m.unit}</span>
+      </div>
+    `;
+  }
+  let delta = '';
+  if (deltaInfo) {
+    delta = `<span class="delta ${deltaInfo.cls}">${deltaInfo.label}</span>`;
+  }
+  let footer = '';
+  if (m.tier) footer += `<span class="tier-badge">${m.tier}</span>`;
+  if (m.reducedConfidence) footer += `<span class="confidence-flag">reduced confidence</span>`;
+  return `
+    <div class="metric ${cls}">
+      <div class="metric-header">
+        <div class="metric-name">${m.name}</div>
+        <div class="metric-value ${m.classify}">${displayValue}${delta}</div>
+      </div>
+      <div class="metric-desc">${m.desc}</div>
+      ${bar}
+      ${m.note ? `<div class="metric-note">${m.note}</div>` : ''}
+      ${footer ? `<div class="metric-footer">${footer}</div>` : ''}
+      <div class="metric-citation">${m.citation}</div>
+    </div>
+  `;
+}
+
+function renderComparison() {
+  // Normalise by bizygomatic — already done since metrics are ratios
+  const a = beforeAnalysis, b = afterAnalysis;
+  const inRangeA = a.metrics.filter(m => m.classify === 'good' && !m.neutralRating).length;
+  const inRangeB = b.metrics.filter(m => m.classify === 'good' && !m.neutralRating).length;
+  const total = a.metrics.filter(m => !m.neutralRating).length;
+
+  summaryRowEl.innerHTML = `
+    <div class="summary-item"><div class="summary-value">${inRangeA} → ${inRangeB}</div><div class="summary-label">Metrics in range</div></div>
+    <div class="summary-item"><div class="summary-value">${a.faceShape.name.split('(')[0].trim()} → ${b.faceShape.name.split('(')[0].trim()}</div><div class="summary-label">Face shape</div></div>
+    <div class="summary-item"><div class="summary-value">${a.metrics.find(m=>m.key==='symmetry')?.value}% → ${b.metrics.find(m=>m.key==='symmetry')?.value}%</div><div class="summary-label">Symmetry</div></div>
+    <div class="summary-item"><div class="summary-value">${a.ageEstimate.low}-${a.ageEstimate.high} → ${b.ageEstimate.low}-${b.ageEstimate.high}</div><div class="summary-label">Estimated age</div></div>
+  `;
+
+  let html = '';
+  const sections = {};
+  for (const mA of a.metrics) {
+    const mB = b.metrics.find(m => m.key === mA.key);
+    if (!mB) continue;
+    if (!sections[mA.section]) sections[mA.section] = [];
+    // Compute delta
+    let deltaInfo = null;
+    if (typeof mA.value === 'number' && typeof mB.value === 'number') {
+      const diff = mB.value - mA.value;
+      const distFromIdealA = Math.abs(mA.value - (mA.idealLow + mA.idealHigh)/2);
+      const distFromIdealB = Math.abs(mB.value - (mB.idealLow + mB.idealHigh)/2);
+      const minMeasurable = Math.abs(diff) < 0.5;
+      if (minMeasurable) deltaInfo = { cls: 'unchanged', label: '≈0' };
+      else if (distFromIdealB < distFromIdealA) deltaInfo = { cls: 'improved', label: (diff >= 0 ? '+' : '') + round(diff,1) };
+      else deltaInfo = { cls: 'worsened', label: (diff >= 0 ? '+' : '') + round(diff,1) };
+    }
+    sections[mA.section].push({ before: mA, after: mB, delta: deltaInfo });
+  }
+
+  for (const [secName, pairs] of Object.entries(sections)) {
+    html += `<div class="section-heading">${secName}</div>`;
+    for (const p of pairs) {
+      html += renderMetric(p.after, p.delta);
+    }
+  }
+
+  metricsContainerEl.innerHTML = html;
+
+  session.demographics = a.demographics;
+  session.metrics = b.metrics;
+  session.warnings = [...a.warnings, ...b.warnings];
+  session.faceShape = b.faceShape;
+  session.estimatedAgeRange = b.ageEstimate;
+  session.symmetryPct = b.metrics.find(m=>m.key==='symmetry')?.value;
+  session.isComparison = true;
+
+  const citations = [...new Set(b.metrics.map(m => m.citation))].filter(Boolean);
+  disclaimerEl.innerHTML = `Measurements estimated from facial landmarks. Deltas between photos are normalised by bizygomatic width and may be within measurement error. A delta under ~0.5% is shown as ≈0 (unchanged).<br><br><strong>Benchmarks sourced from:</strong> ${citations.join('; ')}.`;
+
+  resultsEl.classList.add('visible');
+  window.scrollTo({ top: resultsEl.offsetTop - 20, behavior: 'smooth' });
+}
+
+// ============================================================================
+// EXPORT — clipboard summary
+// ============================================================================
+function buildExport() {
+  const d = session.demographics;
+  const ts = new Date().toISOString();
+  let out = `Cephalometric analysis — ${ts}\n`;
+  out += `Demographics: ${d.sex}, ${d.ethnicity}, age ${d.age}. Model: MediaPipe ${d.modelType}-point.\n\n`;
+  out += `Face shape: ${session.faceShape.name}\n`;
+  out += `Symmetry: ${session.symmetryPct}%\n`;
+  out += `Estimated perceived age: ${session.estimatedAgeRange.low}–${session.estimatedAgeRange.high}\n\n`;
+  out += `Warnings:\n`;
+  for (const w of session.warnings) out += `  - [${w.level}] ${w.msg}\n`;
+  out += `\nMetrics:\n`;
+  for (const m of session.metrics) {
+    out += `  ${m.name}: ${m.value}${m.unit || ''} [${m.classify}]`;
+    if (!m.binary && m.idealLow != null) out += ` — ideal ${m.idealLow}–${m.idealHigh}${m.unit||''}`;
+    if (m.tier) out += ` — tier: ${m.tier}`;
+    if (m.reducedConfidence) out += ` — reduced confidence`;
+    out += `\n    ${m.citation}\n`;
+    if (m.note) out += `    Note: ${m.note}\n`;
+  }
+  return out;
+}
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = buildExport();
+  try {
+    await navigator.clipboard.writeText(text);
+    const b = document.getElementById('copyBtn');
+    const old = b.textContent; b.textContent = 'Copied';
+    setTimeout(() => b.textContent = old, 1500);
+  } catch {
+    alert('Clipboard unavailable. Summary:\n\n' + text);
+  }
+});
+
+// ============================================================================
+// REPORT AND SELF-IMPROVE PROMPTS
+// ============================================================================
+function buildReportPrompt() {
+  const summary = buildExport();
+  return `${summary}
+
+---
+
+Write a comprehensive QOVES-style facial aesthetics analysis for this subject. Structure as follows: (1) Cephalometric averageness summary — overall impression, how many metrics are in range, the pattern of deviations and what they suggest structurally. (2) Section-by-section breakdown in this order: facial proportions, face shape, transverse rule of fifths, vertical thirds, periocular and orbital region, lips and lower face, symmetry. For each section explain what the measurement means aesthetically with reference to the cited literature, what the subject's specific value means for their appearance, and what drives the deviation if out of range. (3) Closing recommendations tiered strictly as: (a) Free/lifestyle — implement immediately, (b) Grooming — hairstyle, facial hair, brow grooming with specific instructions, (c) Skincare — specific evidence-based products and ingredients, (d) Non-surgical — specific exercises, posture corrections, mewing where evidenced, (e) Injectables — specific filler placement locations and volumes, Botox placement with muscle targets, (f) Surgical — only where structurally indicated, with the specific procedure named. Within each tier rank by impact-to-risk ratio. Be direct and specific. Do not soften findings. Do not add filler sentences. Reference the specific paper behind each recommendation.`;
+}
+
+function buildSelfImprovePrompt() {
+  const summary = buildExport();
+  return `${summary}
+
+Current landmark indices in use:
+${session.landmarkIndicesUsed}
+
+Accuracy warnings triggered this session:
+${session.warnings.map(w => `- [${w.level}] ${w.msg}`).join('\n') || '(none)'}
+
+---
+
+Analyse this facial analysis tool as a computer vision engineer and cephalometrics expert. Identify specifically: (1) Any MediaPipe landmark indices that are anatomically incorrect for the measurement they are being used for — name the correct anatomical landmark and the more appropriate index. (2) Any norm values that appear to be approximations rather than actual peer-reviewed data — state the correct value with its source PMID. (3) Any measurements that cannot be reliably computed from a frontal 2D photo and should either be removed or heavily caveated. (4) Any missing measurements from the facial aesthetics literature that would meaningfully improve diagnostic completeness. (5) Any preprocessing or image quality issues that would improve accuracy. (6) Any UX changes that would make results more clinically useful. Then produce a complete updated single HTML file incorporating all improvements. Do not produce a list of changes only — produce the complete working file. Explain each change briefly before the code block. If the complete file would exceed your context window, produce it in clearly labelled sections and instruct the user to concatenate them.`;
+}
+
+document.getElementById('reportBtn').addEventListener('click', () => {
+  window._rp = buildReportPrompt();
+  // Copy to clipboard and also open Claude.ai with a pre-filled note
+  navigator.clipboard.writeText(window._rp).then(() => {
+    const b = document.getElementById('reportBtn');
+    const old = b.textContent;
+    b.textContent = 'Prompt copied — paste into Claude';
+    setTimeout(() => b.textContent = old, 3000);
+  }).catch(() => {
+    showConfirm('Prompt stored in window._rp. Open devtools console and copy it, or grant clipboard access.', () => {});
+  });
+});
+
+document.getElementById('improveBtn').addEventListener('click', () => {
+  window._sp = buildSelfImprovePrompt();
+  navigator.clipboard.writeText(window._sp).then(() => {
+    const b = document.getElementById('improveBtn');
+    const old = b.textContent;
+    b.textContent = 'Prompt copied — paste into Claude';
+    setTimeout(() => b.textContent = old, 3000);
+  }).catch(() => {
+    showConfirm('Prompt stored in window._sp. Open devtools console and copy it.', () => {});
+  });
+});
+
+function showConfirm(text, cb) {
+  document.getElementById('confirmText').textContent = text;
+  document.getElementById('confirmOverlay').classList.add('visible');
+  document.getElementById('confirmOk').onclick = () => {
+    document.getElementById('confirmOverlay').classList.remove('visible');
+    cb();
+  };
+  document.getElementById('confirmCancel').onclick = () => {
+    document.getElementById('confirmOverlay').classList.remove('visible');
+  };
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  resultsEl.classList.remove('visible');
+  beforeAnalysis = null; afterAnalysis = null;
+  warningsEl.innerHTML = ''; warningsElCompare.innerHTML = '';
+  hideStatus();
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileInputA').value = '';
+  document.getElementById('fileInputB').value = '';
+});
+
+// Kick off model load early
+initLandmarker().catch(e => console.error('Preload failed:', e));
+
+</script>
+</body>
+</html>
